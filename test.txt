@@ -1,2 +1,3 @@
 First file to new_repo
-Test string!
+Test string
+Third string
