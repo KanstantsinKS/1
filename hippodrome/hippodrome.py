@@ -3,6 +3,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from random import randint
 
+
 def insert_text(string):
     """
     string - строка добавляемая в чат.
@@ -55,20 +56,33 @@ def save_money(money_to_save):
         quit(0)
 
 
-def view_money():
-    """
-
-    Метод выводит в информационый чат оставшуюся у игрока сумму средств.
-    """
-    pass
-
-
 def view_weather():
     """
 
     Метод выводит информацию о текущей погоде в информационный чат.
     """
-    pass
+    message = "Сейчас на ипподроме "
+    if day_time == 1:
+        message += "ночь, "
+    elif day_time == 2:
+        message += "утро, "
+    elif day_time == 3:
+        message += "день, "
+    elif day_time == 4:
+        message += "вечер, "
+
+    if weather == 1:
+        message += "льет сильный дождь."
+    elif weather == 2:
+        message += "бушует ураган."
+    elif weather == 3:
+        message += "моросит дождик."
+    elif weather == 4:
+        message += "пасмурно."
+    elif weather == 5:
+        message += "погода ясная."
+
+    insert_text(message)
 
 
 def run_horse():
@@ -92,22 +106,69 @@ def move_horse():
     Метод отвечает за расчет положения и движение лошадей. Создает нештатные ситуации. Работает в цикле, вызывается
     каждые 5 милисекунд. Главный цикл игры.
     """
+    if randint(0, 100) < 20:
+        problem_horse()
+
     global x01, x02, x03, x04
 
-    speed01 = randint(3, 10) / 10
-    speed02 = randint(3, 10) / 10
-    speed03 = randint(3, 10) / 10
-    speed04 = randint(3, 10) / 10
+    speed01 = (randint(1, day_time + weather) + randint(1, int((7 - state01)) * 3)) / randint(10, 175)
+    speed02 = (randint(1, day_time + weather) + randint(1, int((7 - state02)) * 3)) / randint(10, 175)
+    speed03 = (randint(1, day_time + weather) + randint(1, int((7 - state03)) * 3)) / randint(10, 175)
+    speed04 = (randint(1, day_time + weather) + randint(1, int((7 - state04)) * 3)) / randint(10, 175)
 
-    x01 += speed01 * randint(1, 7 - state01) / state01
-    x02 += speed02 * randint(1, 7 - state02) / state02
-    x03 += speed03 * randint(1, 7 - state03) / state03
-    x04 += speed04 * randint(1, 7 - state04) / state04
+    accelerate = 2
+
+    if accelerate01:
+        speed01 *= randint(1, 2 + state01 * (1 + accelerate01 * accelerate))
+    if accelerate02:
+        speed02 *= randint(1, 2 + state02 * (1 + accelerate02 * accelerate))
+    if accelerate03:
+        speed03 *= randint(1, 2 + state03 * (1 + accelerate03 * accelerate))
+    if accelerate04:
+        speed04 *= randint(1, 2 + state04 * (1 + accelerate04 * accelerate))
+
+    if move01:
+        if not reverse01:
+            x01 += speed01 * 3
+        else:
+            x01 -= speed01 * 3
+    if move02:
+        if not reverse02:
+            x02 += speed02 * 3
+        else:
+            x02 -= speed02 * 3
+    if move03:
+        if not reverse03:
+            x03 += speed03 * 3
+        else:
+            x03 -= speed03 * 3
+    if move04:
+        if not reverse04:
+            x04 += speed04 * 3
+        else:
+            x04 -= speed04 * 3
 
     horse_plase_in_window()
 
+    all_move = move01 or move02 or move03 or move04
+    all_x = x01 < 0 and x02 < 0 and x03 < 0 and x04 < 0
+    all_reverse = reverse01 and reverse02 and reverse03 and reverse04
+
+    if not all_move or all_x or all_reverse:
+        win_round(0)
+        return 0
+
     if x01 < 952 and x02 < 952 and x03 < 952 and x04 < 952:
         root.after(5, move_horse)
+    else:
+        if x01 >= 952:
+            win_round(1)
+        elif x02 >= 952:
+            win_round(2)
+        elif x03 >= 952:
+            win_round(3)
+        elif x04 >= 952:
+            win_round(4)
 
 
 def win_round(horse):
@@ -116,7 +177,62 @@ def win_round(horse):
     Метод вызывается когда хотя бы одна лошадь достигла финиша, или если все лошади сошли с дистанции. Производит
     расчет результатов выигрыша или поражения игрока. Выводит сообщение результата. Записывает сумму средств в файл.
     """
-    pass
+    global x01, x02, x03, x04, money
+    result = "К финишу пришла лошадь "
+
+    if horse == 1:
+        result += name_horse01
+        win = count01.get() * win_coeff01
+    elif horse == 2:
+        result += name_horse02
+        win = count02.get() * win_coeff02
+    elif horse == 3:
+        result += name_horse03
+        win = count03.get() * win_coeff03
+    elif horse == 4:
+        result += name_horse04
+        win = count04.get() * win_coeff04
+
+    if horse > 0:
+        result += f"! Вы выиграли {int(win)} {currency}. "
+        if win > 0:
+            result += "Поздравляем! Средства уже зачислены на Ваш счет!"
+            insert_text(f"Этот забег принес Вам {int(win)} {currency}.")
+        else:
+            result += "К сожалению, Ваша лошадь проиграла. Попробуйте снова!"
+            insert_text("Делайте ставку!")
+        messagebox.showinfo("Результат", result)
+    else:
+        messagebox.showinfo("Сожалеем!", "Все лошади сошли с дистанции.")
+        insert_text("Забег признан несостоявшимся.")
+        win = count01.get() + count02.get() + count03.get() + count04.get()
+
+    money += win
+    save_money(int(money))
+
+    setup_horse()
+
+    start_button["state"] = "normal"
+    bet01["state"] = "readonly"
+    bet02["state"] = "readonly"
+    bet03["state"] = "readonly"
+    bet04["state"] = "readonly"
+    bet01.current(0)
+    bet02.current(0)
+    bet03.current(0)
+    bet04.current(0)
+
+    x01, x02, x03, x04 = 20, 20, 20, 20
+    horse_plase_in_window()
+
+    refresh_combo(event_objects="")
+    view_weather()
+    health_horse()
+    insert_text(f"Ваши средства {int(money)} {currency}.")
+
+    if money < 1:
+        messagebox.showinfo("Стоп!", "На ипподром без денег нельзя!")
+        quit(0)
 
 
 def problem_horse():
@@ -124,7 +240,54 @@ def problem_horse():
 
     Метот генерации внештатных ситуаций(лошадь развернулась, скидывает жокея, ускоряется).
     """
-    pass
+    global reverse01, reverse02, reverse03, reverse04
+    global move01, move02, move03, move04
+    global accelerate01, accelerate02, accelerate03, accelerate04
+
+    horse = randint(1, 4)
+
+    max_rand = 10000
+
+    if horse == 1 and move01 == True and x01 > 0:
+        if randint(0, max_rand) < state01 * 5:
+            reverse01 = True
+            messagebox.showinfo("Упс!", f"Лошадь {name_horse01} побежала в другую сторону!")
+        elif randint(0, max_rand) < state01 * 5:
+            move01 = False
+            messagebox.showinfo("Упс!", f"Лошадь {name_horse01} сбросила жокея и остановилась!")
+        elif randint(0, max_rand) < state01 * 5 and not accelerate01:
+            move01 = True
+            messagebox.showinfo("Вау!", f"Лошадь {name_horse01} перестала притворяться и ускорилась!")
+    elif horse == 2 and move02 == True and x02 > 0:
+        if randint(0, max_rand) < state02 * 5:
+            reverse02 = True
+            messagebox.showinfo("Упс!", f"Лошадь {name_horse02} побежала в другую сторону!")
+        elif randint(0, max_rand) < state02 * 5:
+            move02 = False
+            messagebox.showinfo("Упс!", f"Лошадь {name_horse02} сбросила жокея и остановилась!")
+        elif randint(0, max_rand) < state02 * 5 and not accelerate02:
+            accelerate02 = True
+            messagebox.showinfo("Вау!", f"Лошадь {name_horse01} перестала притворяться и ускорилась!")
+    elif horse == 3 and move03 == True and x03 > 0:
+        if randint(0, max_rand) < state03 * 5:
+            reverse03 = True
+            messagebox.showinfo("Упс!", f"Лошадь {name_horse03} побежала в другую сторону!")
+        elif randint(0, max_rand) < state03 * 5:
+            move03 = False
+            messagebox.showinfo("Упс!", f"Лошадь {name_horse03} сбросила жокея и остановилась!")
+        elif randint(0, max_rand) < state03 * 5 and not accelerate03:
+            accelerate03 = True
+            messagebox.showinfo("Вау!", f"Лошадь {name_horse03} перестала притворяться и ускорилась!")
+    elif horse == 4 and move04 == True and x04 > 0:
+        if randint(0, max_rand) < state04 * 5:
+            reverse04 = True
+            messagebox.showinfo("Упс!", f"Лошадь {name_horse04} побежала в другую сторону!")
+        elif randint(0, max_rand) < state04 * 5:
+            move04 = False
+            messagebox.showinfo("Упс!", f"Лошадь {name_horse04} сбросила жокея и остановилась!")
+        elif randint(0, max_rand) < state04 * 5 and not accelerate04:
+            accelerate04 = True
+            messagebox.showinfo("Вау!", f"Лошадь {name_horse04} перестала притворяться и ускорилась!")
 
 
 def refresh_combo(event_objects):
@@ -190,33 +353,75 @@ def get_values(count):
 
 def setup_horse():
     """
-
     Метод устанавливает состояния лошадей и погоды на основе случайных значений. Задается один раз в начале программы
     и обновляется после каждого забега.
     """
-    pass
+    global state01, state02, state03, state04
+    global weather, day_time
+    global win_coeff01, win_coeff02, win_coeff03, win_coeff04
+    global move01, move02, move03, move04
+    global reverse01, reverse02, reverse03, reverse04
+    global accelerate01, accelerate02, accelerate03, accelerate04
+
+    weather = randint(1, 5)
+    day_time = randint(1, 4)
+
+    state01 = randint(1, 5)
+    state02 = randint(1, 5)
+    state03 = randint(1, 5)
+    state04 = randint(1, 5)
+
+    win_coeff01 = int(100 + randint(1, 30 + state01 * 60)) / 100
+    win_coeff02 = int(100 + randint(1, 30 + state02 * 60)) / 100
+    win_coeff03 = int(100 + randint(1, 30 + state03 * 60)) / 100
+    win_coeff04 = int(100 + randint(1, 30 + state04 * 60)) / 100
+
+    reverse01, reverse02, reverse03, reverse04 = False, False, False, False
+
+    move01, move02, move03, move04 = True, True, True, True
+
+    accelerate01, accelerate02, accelerate03, accelerate04 = False, False, False, False
 
 
 def get_health(name, state, win):
     """
-
     Функция формирует и возвращает текстовую запись состояния каждой отдельной лошади и коэффициент ставки на нее.
     """
-    pass
+    message = f"Лошадь {name} "
+    if state == 5:
+        message += "мучается несварением желудка."
+    elif state == 4:
+        message += "плохо спала. Подергивается веко."
+    elif state == 3:
+        message += "сурова и беспощадна."
+    elif state == 2:
+        message += "в отличном настроении."
+    elif state == 1:
+        message += "просто ракета!"
 
-# Инициализация tkintera.
+    message += f" ({win}:1)"
+    return message
+
+
+def health_horse():
+    """
+    Метод выводит текстовую запись состояния каждой отдельной лошади и коэффициент ставки на нее.
+    """
+    insert_text(get_health(name_horse01, state01, win_coeff01))
+    insert_text(get_health(name_horse02, state02, win_coeff02))
+    insert_text(get_health(name_horse03, state03, win_coeff03))
+    insert_text(get_health(name_horse04, state04, win_coeff04))
+
+
+# Инициализация tkinter.
 root = Tk()
-
 
 # Определяем размер окна программы константами.
 WIDTH = 1024
 HEIGHT = 600
 
 # Устанавливаем координаты x для каждой из лошадей.
-x01 = 20
-x02 = 20
-x03 = 20
-x04 = 20
+x01, x02, x03, x04 = 20, 20, 20, 20
 
 # Задаем переменные кличек лошадей.
 name_horse01 = "Ананас"
@@ -224,24 +429,49 @@ name_horse02 = "Сталкер"
 name_horse03 = "Прожорливый"
 name_horse04 = "Копытце"
 
+# Переменные отвечающие за движение назад.
+reverse01, reverse02, reverse03, reverse04 = False, False, False, False
+
+# Переменные отвечающие за движение вперед или остановку.
+move01, move02, move03, move04 = True, True, True, True
+
+# Переменные отвечающие за ускорение.
+accelerate01, accelerate02, accelerate03, accelerate04 = False, False, False, False
+
 # Задаем переменные денег.
 money = 0
 default_money = 10000
-currency = "руб."
+currency = "руб"
 
+# Погода 1 - ливень, 2 - ураган, 3 - дождь, 4 - пасмурно, 5 - ясно
+weather = randint(1, 5)
+
+# Время суток 1 - ночь, 2 - утро, 3 - день, 4 - вечер
+day_time = randint(1, 4)
+
+# Состояние лошадей 1 - отлично, 5 - ужасно.
+state01 = randint(1, 5)
+state02 = randint(1, 5)
+state03 = randint(1, 5)
+state04 = randint(1, 5)
+
+win_coeff01 = int(100 + randint(1, 30 + state01 * 60)) / 100
+win_coeff02 = int(100 + randint(1, 30 + state02 * 60)) / 100
+win_coeff03 = int(100 + randint(1, 30 + state03 * 60)) / 100
+win_coeff04 = int(100 + randint(1, 30 + state04 * 60)) / 100
 
 # Вычисляем координаты для размещения окна по центру.
 POS_X = root.winfo_screenwidth() // 2 - WIDTH // 2
 POS_Y = root.winfo_screenheight() // 2 - HEIGHT // 2
 
-# Устанавливаем ширину, высоту и позицию.
-root.geometry(f"{WIDTH}x{HEIGHT}+{POS_X}+{POS_Y}")
+# Установка заголовка.
+root.title("Hyppodrome")
 
 # Запрещаем изменение размеров окна.
 root.resizable(False, False)
 
-# Установка заголовка.
-root.title("Hyppodrome")
+# Устанавливаем ширину, высоту и позицию.
+root.geometry(f"{WIDTH}x{HEIGHT}+{POS_X}+{POS_Y}")
 
 # Выводим на экран фон дорожек ипподрома и финишной линии.
 road_image = PhotoImage(file="img/road.png")  # Загружаем изображение.
@@ -305,24 +535,25 @@ hoese01_game = BooleanVar()
 hoese01_game.set(0)
 hoese01_check = Checkbutton(text=name_horse01, variable=hoese01_game, onvalue=1, offvalue=0)
 hoese01_check.place(x=150, y=448)
-hoese01_check["state"] = "disabled"
 
 hoese02_game = BooleanVar()
 hoese02_game.set(0)
 hoese02_check = Checkbutton(text=name_horse02, variable=hoese02_game, onvalue=1, offvalue=0)
 hoese02_check.place(x=150, y=478)
-hoese02_check["state"] = "disabled"
 
 hoese03_game = BooleanVar()
 hoese03_game.set(0)
 hoese03_check = Checkbutton(text=name_horse03, variable=hoese03_game, onvalue=1, offvalue=0)
 hoese03_check.place(x=150, y=508)
-hoese03_check["state"] = "disabled"
 
 hoese04_game = BooleanVar()
 hoese04_game.set(0)
 hoese04_check = Checkbutton(text=name_horse04, variable=hoese04_game, onvalue=1, offvalue=0)
 hoese04_check.place(x=150, y=538)
+
+hoese01_check["state"] = "disabled"
+hoese02_check["state"] = "disabled"
+hoese03_check["state"] = "disabled"
 hoese04_check["state"] = "disabled"
 
 # Создаем выпадающий список со ставками.
@@ -359,22 +590,13 @@ bet03.bind("<<ComboboxSelected>>", refresh_combo)
 bet04.bind("<<ComboboxSelected>>", refresh_combo)
 
 refresh_combo("")
-
 bet01.current(0)
 bet02.current(0)
 bet03.current(0)
 bet04.current(0)
 
-
-# DELETE
-bet01.current(1)
-refresh_combo("")
-
-# Состояние лошадей 1 - отлично, 5 - ужасно.
-state01 = randint(1, 5)
-state02 = randint(1, 5)
-state03 = randint(1, 5)
-state04 = randint(1, 5)
+view_weather()
+health_horse()
 
 # Рисуем окно игры.
 root.mainloop()
