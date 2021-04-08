@@ -1,3 +1,0 @@
-First file to new_repo
-Test string
-Third string
